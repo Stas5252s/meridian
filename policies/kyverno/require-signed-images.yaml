@@ -33,7 +33,7 @@ spec:
           'app.kubernetes.io/component' in object.metadata.labels &&
           object.metadata.labels['app.kubernetes.io/component'] == 'redis')
   matchImageReferences:
-    - glob: "ghcr.io/Stas5252s/meridian/checkout-api:*"
+    - glob: "ghcr.io/stas5252s/meridian/checkout-api:*"
   validationConfigurations:
     mutateDigest: true
     verifyDigest: false

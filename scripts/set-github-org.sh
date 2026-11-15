@@ -23,6 +23,9 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
+OWNER_LC="$(printf '%s' "${OWNER}" | tr '[:upper:]' '[:lower:]')"
+REPO_LC="$(printf '%s' "${REPO}" | tr '[:upper:]' '[:lower:]')"
+
 mapfile_compat() {
   # macOS ships bash 3.2, which has no mapfile.
   find . -type f \
@@ -37,7 +40,7 @@ changed=0
 while IFS= read -r -d '' file; do
   tmp="$(mktemp)"
   cp "${file}" "${tmp}"
-  perl -pi -e "s|github\\.com/[A-Za-z0-9_.-]+/${REPO}|github.com/${OWNER}/${REPO}|g; s|ghcr\\.io/[A-Za-z0-9_.-]+/${REPO}|ghcr.io/${OWNER}/${REPO}|g" "${file}"
+  perl -pi -e "s|github\\.com/[A-Za-z0-9_.-]+/${REPO}|github.com/${OWNER}/${REPO}|g; s|ghcr\\.io/[A-Za-z0-9_.-]+/${REPO}|ghcr.io/${OWNER_LC}/${REPO_LC}|g" "${file}"
   if ! cmp -s "${tmp}" "${file}"; then
     changed=$((changed + 1))
   fi

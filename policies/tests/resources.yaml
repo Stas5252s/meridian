@@ -31,7 +31,7 @@ metadata:
 spec:
   containers:
     - name: api
-      image: ghcr.io/Stas5252s/meridian/checkout-api:1.4.2
+      image: ghcr.io/stas5252s/meridian/checkout-api:1.4.2
       ports:
         - name: http
           containerPort: 8080
@@ -76,7 +76,7 @@ metadata:
 spec:
   containers:
     - name: api
-      image: ghcr.io/Stas5252s/meridian/checkout-api
+      image: ghcr.io/stas5252s/meridian/checkout-api
 ---
 apiVersion: v1
 kind: Pod
@@ -86,7 +86,7 @@ metadata:
 spec:
   containers:
     - name: api
-      image: ghcr.io/Stas5252s/meridian/checkout-api:1.4.2
+      image: ghcr.io/stas5252s/meridian/checkout-api:1.4.2
       readinessProbe:
         httpGet:
           path: /readyz
@@ -163,7 +163,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/Stas5252s/meridian/checkout-api:1.4.2
+          image: ghcr.io/stas5252s/meridian/checkout-api:1.4.2
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -184,4 +184,4 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/Stas5252s/meridian/checkout-api:1.4.2
+          image: ghcr.io/stas5252s/meridian/checkout-api:1.4.2
