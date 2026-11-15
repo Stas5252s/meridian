@@ -182,7 +182,7 @@ This runs the two-stage Terraform apply, builds `checkout-api:dev` and imports i
 | Staging | https://checkout-staging.localtest.me:8443 | none (self-signed) |
 | Production | https://checkout-prod.localtest.me:8443 | none (self-signed), manual sync |
 | Grafana | https://grafana.localtest.me:8443 | `terraform -chdir=infra/terraform output -raw grafana_admin_password` |
-| ArgoCD | `make port-forward` then http://localhost:8081 | admin / `terraform -chdir=infra/terraform output -raw argocd_admin_password_command` |
+| ArgoCD | `make port-forward` then http://localhost:8081 | admin / `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' \| base64 -d` |
 
 ### 4. Verify
 

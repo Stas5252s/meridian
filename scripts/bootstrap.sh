@@ -47,7 +47,8 @@ cat <<EOF
 Meridian is up.
 
   ArgoCD UI     kubectl -n argocd port-forward svc/argocd-server 8081:80
-                http://localhost:8081  (admin password: terraform -chdir=${TF_DIR} output -raw argocd_admin_password_command)
+                http://localhost:8081
+                password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
   Grafana       https://grafana.localtest.me:8443
                 password: terraform -chdir=${TF_DIR} output -raw grafana_admin_password
   Storefront    https://checkout.localtest.me:8443
