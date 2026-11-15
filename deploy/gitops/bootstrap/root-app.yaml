@@ -1,0 +1,31 @@
+# Applied once by `make bootstrap` after ArgoCD is installed. From then on,
+# ArgoCD owns everything below .spec.source.path.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: meridian-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/meridian.git
+    targetRevision: main
+    path: deploy/gitops/app-of-apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

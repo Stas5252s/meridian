@@ -1,0 +1,44 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: meridian-require-probes
+  annotations:
+    policies.kyverno.io/title: Require readiness and liveness probes
+    policies.kyverno.io/category: Reliability
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/minversion: 1.20.0
+    policies.kyverno.io/description: >-
+      Every container must expose readiness and liveness probes so that
+      rollouts gate on real traffic readiness and the kubelet can recover
+      wedged processes. HTTP, exec and TCP probes are accepted; HTTP probes
+      must set a path.
+spec:
+  validationActions:
+    - Audit
+  evaluation:
+    background:
+      enabled: true
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  matchConditions:
+    - name: meridian-namespace
+      expression: >-
+        object.metadata.namespace in
+        ['checkout-local', 'checkout-staging', 'checkout-prod']
+  variables:
+    - name: containers
+      expression: object.spec.containers
+  validations:
+    - expression: >-
+        variables.containers.all(c,
+        has(c.readinessProbe) && has(c.livenessProbe) &&
+        (has(c.readinessProbe.exec) || has(c.readinessProbe.tcpSocket) ||
+         (has(c.readinessProbe.httpGet) && has(c.readinessProbe.httpGet.path))) &&
+        (has(c.livenessProbe.exec) || has(c.livenessProbe.tcpSocket) ||
+         (has(c.livenessProbe.httpGet) && has(c.livenessProbe.httpGet.path))))
+      message: "Each container must define readinessProbe and livenessProbe (HTTP with a path, exec or TCP)."

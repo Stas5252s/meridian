@@ -1,0 +1,79 @@
+name: promote-prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Released image tag to promote (for example v0.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  propose:
+    name: open production promotion PR
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: validate tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.]+)?$ ]]; then
+            echo "invalid release tag: ${TAG}" >&2
+            exit 1
+          fi
+
+      - name: configure git
+        run: |
+          git config user.name "meridian-bot"
+          git config user.email "meridian-bot@users.noreply.github.com"
+
+      - name: bump production overlay
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          git switch -c "promote/${TAG}-${{ github.run_id }}"
+          ./scripts/image-bump.sh "${TAG}" prod
+          if [[ "$(git rev-list --count main..HEAD)" == "0" ]]; then
+            echo "production is already pinned to ${TAG}; nothing to promote" >&2
+            exit 1
+          fi
+
+      - name: push branch
+        env:
+          BRANCH: promote/${{ inputs.tag }}-${{ github.run_id }}
+        run: git push --set-upstream origin "${BRANCH}"
+
+      - name: open pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          BRANCH: promote/${{ inputs.tag }}-${{ github.run_id }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "promote checkout-api ${TAG} to production" \
+            --body "$(cat <<EOF
+          ## Promotion request
+
+          Promotes \`checkout-api\` **${TAG}** from staging to production.
+
+          - [ ] staging soaked for at least 30 minutes with healthy SLOs
+          - [ ] image signature and SPDX attestation verified
+          - [ ] Argo Rollouts canary analysis passed in staging
+          - [ ] production diff reviewed (replicas, resources, PDB)
+
+          Merging this PR is the production deploy. ArgoCD is manual-sync for
+          \`checkout-api-prod\`; after merge a human clicks Sync, and the
+          Argo Rollouts canary is gated by Prometheus analysis.
+          EOF
+          )"

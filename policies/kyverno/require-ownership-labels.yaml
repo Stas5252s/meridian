@@ -1,0 +1,42 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: meridian-require-ownership-labels
+  annotations:
+    policies.kyverno.io/title: Require ownership labels on Deployments and Rollouts
+    policies.kyverno.io/category: Governance
+    policies.kyverno.io/severity: low
+    policies.kyverno.io/subject: Deployment, Rollout
+    policies.kyverno.io/minversion: 1.20.0
+    policies.kyverno.io/description: >-
+      Deployments and Rollouts must carry the Meridian ownership labels so
+      cost allocation, incident routing and policy reports can resolve an
+      owning team without reading release manifests.
+spec:
+  validationActions:
+    - Audit
+  evaluation:
+    background:
+      enabled: true
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments"]
+      - apiGroups: ["argoproj.io"]
+        apiVersions: ["v1alpha1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["rollouts"]
+  matchConditions:
+    - name: meridian-namespace
+      expression: >-
+        object.metadata.namespace in
+        ['checkout-local', 'checkout-staging', 'checkout-prod']
+  validations:
+    - expression: >-
+        has(object.metadata.labels) &&
+        'app.kubernetes.io/name' in object.metadata.labels &&
+        'app.kubernetes.io/part-of' in object.metadata.labels &&
+        'meridian.io/team' in object.metadata.labels
+      message: "Workloads must set app.kubernetes.io/name, app.kubernetes.io/part-of and meridian.io/team labels."

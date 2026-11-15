@@ -1,0 +1,39 @@
+# Staging is auto-synced by ArgoCD and demonstrates progressive delivery. CI
+# bumps image.tag here after a signed image is published to GHCR.
+replicaCount: 2
+
+image:
+  repository: ghcr.io/your-org/meridian/checkout-api
+  tag: v0.1.0
+
+ingress:
+  enabled: true
+  host: checkout-staging.localtest.me
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned
+  tls:
+    enabled: true
+    secretName: checkout-staging-tls
+
+rollout:
+  enabled: true
+  analysis:
+    enabled: true
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+resources:
+  requests:
+    cpu: 75m
+    memory: 96Mi
+  limits:
+    cpu: 500m
+    memory: 192Mi

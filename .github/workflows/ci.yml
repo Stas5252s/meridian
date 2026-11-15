@@ -1,0 +1,145 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  KUBECONFORM_VERSION: v0.8.0
+  KYVERNO_VERSION: v1.20.0
+
+jobs:
+  go:
+    name: go test + lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: services/checkout-api/go.mod
+          cache-dependency-path: services/checkout-api/go.sum
+      - name: vet
+        working-directory: services/checkout-api
+        run: go vet ./...
+      - name: test (race)
+        working-directory: services/checkout-api
+        run: go test -race -count=1 ./...
+      - uses: golangci/golangci-lint-action@v9.3.0
+        with:
+          version: v2.15.0
+          working-directory: services/checkout-api
+          args: --timeout=5m
+
+  manifests:
+    name: helm + kubeconform + policies
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: azure/setup-helm@v5.1.0
+        with:
+          version: v3.19.0
+      - name: helm lint
+        run: helm lint --strict deploy/charts/checkout-api
+      - name: render every environment
+        run: |
+          mkdir -p .render
+          for env in local staging prod; do
+            helm template checkout-api deploy/charts/checkout-api \
+              -f "deploy/charts/checkout-api/environments/${env}.yaml" \
+              > ".render/${env}.yaml"
+          done
+      - name: kubeconform
+        run: |
+          docker run --rm \
+            -v "${PWD}:/repo" -w /repo \
+            ghcr.io/yannh/kubeconform:v0.8.0 \
+            -strict -ignore-missing-schemas -kubernetes-version 1.34.0 -summary \
+            -ignore-filename-pattern 'values.yaml' \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            /repo/.render /repo/deploy/gitops /repo/deploy/platform /repo/policies/kyverno
+      - name: install kyverno CLI
+        run: |
+          curl -sSLo /tmp/kyverno.tar.gz \
+            "https://github.com/kyverno/kyverno/releases/download/${KYVERNO_VERSION}/kyverno-cli_${KYVERNO_VERSION}_linux_x86_64.tar.gz"
+          tar -xzf /tmp/kyverno.tar.gz -C /tmp kyverno
+          sudo install -m 0755 /tmp/kyverno /usr/local/bin/kyverno
+          kyverno version
+      - name: kyverno policy tests
+        run: |
+          kyverno test policies/tests
+          kyverno test policies/tests -f mutate-test.yaml
+      - name: actionlint
+        run: docker run --rm -v "${PWD}:/repo" -w /repo rhysd/actionlint:1.7.12
+
+  terraform:
+    name: terraform fmt + validate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: hashicorp/setup-terraform@v4.0.1
+        with:
+          terraform_version: 1.17.2
+          terraform_wrapper: false
+      - name: fmt
+        run: terraform -chdir=infra/terraform fmt -check -recursive
+      - name: validate
+        run: |
+          terraform -chdir=infra/terraform init -backend=false -input=false
+          terraform -chdir=infra/terraform validate
+
+  e2e:
+    name: kind e2e smoke
+    runs-on: ubuntu-24.04
+    needs: go
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: helm/kind-action@v1.15.2
+        with:
+          version: v0.33.0
+          node_image: kindest/node:v1.34.0
+          cluster_name: meridian-e2e
+          wait: 120s
+      - name: build image
+        run: |
+          docker build \
+            --build-arg VERSION=e2e \
+            --build-arg COMMIT="${GITHUB_SHA}" \
+            --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -t checkout-api:e2e services/checkout-api
+      - name: load image into kind
+        run: kind load docker-image checkout-api:e2e --name meridian-e2e
+      - name: install chart
+        run: |
+          helm upgrade --install checkout-api deploy/charts/checkout-api \
+            --namespace checkout-e2e --create-namespace \
+            -f deploy/charts/checkout-api/environments/local.yaml \
+            --set image.repository=checkout-api \
+            --set image.tag=e2e \
+            --set ingress.enabled=false \
+            --set rollout.enabled=false \
+            --set autoscaling.enabled=false \
+            --set pdb.enabled=false \
+            --set networkPolicy.enabled=false \
+            --set serviceMonitor.enabled=false \
+            --set prometheusRule.enabled=false \
+            --set dashboard.enabled=false \
+            --wait --timeout 5m
+      - name: smoke test through port-forward
+        run: |
+          kubectl -n checkout-e2e port-forward svc/checkout-api 18080:80 &
+          BASE_URL=http://127.0.0.1:18080 ./scripts/smoke.sh
+      - name: diagnostics
+        if: failure()
+        run: |
+          kubectl -n checkout-e2e get pods -o wide
+          kubectl -n checkout-e2e describe pods
+          kubectl -n checkout-e2e logs deploy/checkout-api --tail=200

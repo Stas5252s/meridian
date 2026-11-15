@@ -1,0 +1,37 @@
+{{- if and .Values.rollout.enabled .Values.rollout.analysis.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "checkout-api.fullname" . }}-success-rate
+  labels:
+    {{- include "checkout-api.labels" . | nindent 4 }}
+spec:
+  args:
+    - name: namespace
+    - name: canary-ingress
+  metrics:
+    - name: success-rate
+      interval: 1m
+      count: 5
+      failureLimit: 2
+      successCondition: result[0] >= {{ .Values.rollout.analysis.successRateThreshold }}
+      provider:
+        prometheus:
+          address: {{ .Values.rollout.analysis.prometheusAddress | quote }}
+          query: |
+            sum(rate(nginx_ingress_controller_requests{namespace="{{ "{{args.namespace}}" }}",ingress="{{ "{{args.canary-ingress}}" }}",status!~"5.."}[2m]))
+            /
+            sum(rate(nginx_ingress_controller_requests{namespace="{{ "{{args.namespace}}" }}",ingress="{{ "{{args.canary-ingress}}" }}"}[2m]))
+    - name: p95-latency
+      interval: 1m
+      count: 5
+      failureLimit: 2
+      successCondition: result[0] < {{ .Values.rollout.analysis.latencyThresholdSeconds }}
+      provider:
+        prometheus:
+          address: {{ .Values.rollout.analysis.prometheusAddress | quote }}
+          query: |
+            histogram_quantile(0.95,
+              sum(rate(nginx_ingress_controller_request_duration_seconds_bucket{namespace="{{ "{{args.namespace}}" }}",ingress="{{ "{{args.canary-ingress}}" }}"}[2m])) by (le)
+            )
+{{- end }}

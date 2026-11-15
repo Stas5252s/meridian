@@ -1,0 +1,16 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: meridian-mutation-policies
+policies:
+  - ../kyverno/add-environment-label.yaml
+resources:
+  - mutate-resource.yaml
+results:
+  - policy: meridian-add-environment-label
+    resources:
+      - mutate-pod
+    kind: Pod
+    result: pass
+    isMutatingPolicy: true
+    patchedResources: mutate-patched.yaml

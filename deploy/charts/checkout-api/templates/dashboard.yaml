@@ -1,0 +1,14 @@
+{{- if .Values.dashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "checkout-api.fullname" . }}-dashboard
+  labels:
+    {{- include "checkout-api.labels" . | nindent 4 }}
+    {{- with .Values.dashboard.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+data:
+  checkout-api.json: |-
+{{ .Files.Get "files/checkout-api-dashboard.json" | indent 4 }}
+{{- end }}

@@ -1,0 +1,98 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: meridian-policies
+policies:
+  - ../kyverno/disallow-latest-tag.yaml
+  - ../kyverno/require-probes.yaml
+  - ../kyverno/require-resource-limits.yaml
+  - ../kyverno/require-ownership-labels.yaml
+  - ../kyverno/restrict-container-security.yaml
+  - ../kyverno/restrict-image-registries.yaml
+resources:
+  - resources.yaml
+results:
+  - policy: meridian-disallow-latest-tag
+    resources:
+      - good-pod
+      - good-prod-pod
+      - bad-registry-pod
+    kind: Pod
+    result: pass
+    isValidatingPolicy: true
+  - policy: meridian-disallow-latest-tag
+    resources:
+      - latest-pod
+      - untagged-pod
+    kind: Pod
+    result: fail
+    isValidatingPolicy: true
+  - policy: meridian-require-probes
+    resources:
+      - good-pod
+      - good-prod-pod
+      - bad-registry-pod
+    kind: Pod
+    result: pass
+    isValidatingPolicy: true
+  - policy: meridian-require-probes
+    resources:
+      - latest-pod
+      - untagged-pod
+    kind: Pod
+    result: fail
+    isValidatingPolicy: true
+  - policy: meridian-require-resource-limits
+    resources:
+      - good-pod
+      - good-prod-pod
+      - bad-registry-pod
+    kind: Pod
+    result: pass
+    isValidatingPolicy: true
+  - policy: meridian-require-resource-limits
+    resources:
+      - latest-pod
+      - untagged-pod
+    kind: Pod
+    result: fail
+    isValidatingPolicy: true
+  - policy: meridian-restrict-container-security
+    resources:
+      - good-pod
+      - good-prod-pod
+      - bad-registry-pod
+    kind: Pod
+    result: pass
+    isValidatingPolicy: true
+  - policy: meridian-restrict-container-security
+    resources:
+      - latest-pod
+      - untagged-pod
+    kind: Pod
+    result: fail
+    isValidatingPolicy: true
+  - policy: meridian-require-ownership-labels
+    resources:
+      - good-deployment
+    kind: Deployment
+    result: pass
+    isValidatingPolicy: true
+  - policy: meridian-require-ownership-labels
+    resources:
+      - bad-deployment
+    kind: Deployment
+    result: fail
+    isValidatingPolicy: true
+  - policy: meridian-restrict-image-registries
+    resources:
+      - good-prod-pod
+    kind: Pod
+    result: pass
+    isValidatingPolicy: true
+  - policy: meridian-restrict-image-registries
+    resources:
+      - bad-registry-pod
+    kind: Pod
+    result: fail
+    isValidatingPolicy: true

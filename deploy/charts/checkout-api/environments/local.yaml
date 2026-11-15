@@ -1,0 +1,29 @@
+# Ephemeral local environment: image is built and loaded into the kind cluster
+# by `make image`, so no registry is involved.
+replicaCount: 1
+
+image:
+  repository: checkout-api
+  tag: dev
+  pullPolicy: IfNotPresent
+
+config:
+  logLevel: debug
+
+ingress:
+  enabled: true
+  host: checkout.localtest.me
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned
+  tls:
+    enabled: true
+    secretName: checkout-local-tls
+
+rollout:
+  enabled: false
+
+autoscaling:
+  enabled: false
+
+pdb:
+  enabled: false

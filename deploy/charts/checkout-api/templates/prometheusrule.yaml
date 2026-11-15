@@ -1,0 +1,129 @@
+{{- if .Values.prometheusRule.enabled }}
+{{- $ns := .Release.Namespace }}
+{{- $budget := subf 1.0 .Values.prometheusRule.slo.availabilityTarget }}
+{{- $fast := printf "%.4f" (mulf $budget 14.4) }}
+{{- $slow := printf "%.4f" (mulf $budget 6.0) }}
+{{- $ticket := printf "%.4f" $budget }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "checkout-api.fullname" . }}-slo
+  labels:
+    {{- include "checkout-api.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: checkout-api-slo-recording
+      interval: 30s
+      rules:
+        - record: checkout_api:slo_error_ratio:5m
+          expr: |
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api", status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api"}[5m]))
+          labels:
+            namespace: {{ $ns }}
+        - record: checkout_api:slo_error_ratio:1h
+          expr: |
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api", status=~"5.."}[1h]))
+            /
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api"}[1h]))
+          labels:
+            namespace: {{ $ns }}
+        - record: checkout_api:slo_error_ratio:30m
+          expr: |
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api", status=~"5.."}[30m]))
+            /
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api"}[30m]))
+          labels:
+            namespace: {{ $ns }}
+        - record: checkout_api:slo_error_ratio:6h
+          expr: |
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api", status=~"5.."}[6h]))
+            /
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api"}[6h]))
+          labels:
+            namespace: {{ $ns }}
+        - record: checkout_api:slo_error_ratio:2h
+          expr: |
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api", status=~"5.."}[2h]))
+            /
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api"}[2h]))
+          labels:
+            namespace: {{ $ns }}
+        - record: checkout_api:slo_error_ratio:1d
+          expr: |
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api", status=~"5.."}[1d]))
+            /
+            sum(rate(http_requests_total{namespace="{{ $ns }}", service="checkout-api"}[1d]))
+          labels:
+            namespace: {{ $ns }}
+        - record: checkout_api:slo_latency_p95:5m
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{namespace="{{ $ns }}", service="checkout-api"}[5m])) by (le)
+            )
+          labels:
+            namespace: {{ $ns }}
+    - name: checkout-api-slo-alerts
+      rules:
+        - alert: CheckoutApiAvailabilityFastBurn
+          expr: |
+            checkout_api:slo_error_ratio:5m{namespace="{{ $ns }}"} > {{ $fast }}
+            and
+            checkout_api:slo_error_ratio:1h{namespace="{{ $ns }}"} > {{ $fast }}
+          for: 2m
+          labels:
+            severity: critical
+            service: checkout-api
+            slo: availability
+            namespace: {{ $ns }}
+          annotations:
+            summary: Checkout API is burning its availability budget at more than 14.4x
+            description: The 5m and 1h error ratios exceed the fast-burn threshold of {{ $fast }} for the {{ .Values.prometheusRule.slo.availabilityTarget }} availability SLO. Page the on-call engineer.
+            runbook_url: https://github.com/your-org/meridian/blob/main/docs/runbook.md#availability-fast-burn
+        - alert: CheckoutApiAvailabilitySlowBurn
+          expr: |
+            checkout_api:slo_error_ratio:30m{namespace="{{ $ns }}"} > {{ $slow }}
+            and
+            checkout_api:slo_error_ratio:6h{namespace="{{ $ns }}"} > {{ $slow }}
+          for: 15m
+          labels:
+            severity: warning
+            service: checkout-api
+            slo: availability
+            namespace: {{ $ns }}
+          annotations:
+            summary: Checkout API is burning its availability budget at more than 6x
+            description: The 30m and 6h error ratios exceed the slow-burn threshold of {{ $slow }}. Investigate before the remaining budget is spent.
+            runbook_url: https://github.com/your-org/meridian/blob/main/docs/runbook.md#availability-slow-burn
+        - alert: CheckoutApiAvailabilityTicket
+          expr: |
+            checkout_api:slo_error_ratio:2h{namespace="{{ $ns }}"} > {{ $ticket }}
+            and
+            checkout_api:slo_error_ratio:1d{namespace="{{ $ns }}"} > {{ $ticket }}
+          for: 30m
+          labels:
+            severity: info
+            service: checkout-api
+            slo: availability
+            namespace: {{ $ns }}
+          annotations:
+            summary: Checkout API is trending through its daily error budget
+            description: The 2h and 1d error ratios are above the 1x burn threshold of {{ $ticket }}. Open a ticket and review the error budget policy.
+            runbook_url: https://github.com/your-org/meridian/blob/main/docs/runbook.md#availability-ticket
+        - alert: CheckoutApiLatencySloBreach
+          expr: checkout_api:slo_latency_p95:5m{namespace="{{ $ns }}"} > {{ .Values.prometheusRule.slo.latencyTargetSeconds }}
+          for: 15m
+          labels:
+            severity: warning
+            service: checkout-api
+            slo: latency
+            namespace: {{ $ns }}
+          annotations:
+            summary: Checkout API p95 latency is above the SLO target
+            description: p95 latency has exceeded {{ .Values.prometheusRule.slo.latencyTargetSeconds }}s for 15 minutes. Check saturation, upstream dependencies, and recent rollouts.
+            runbook_url: https://github.com/your-org/meridian/blob/main/docs/runbook.md#latency-breach
+{{- end }}

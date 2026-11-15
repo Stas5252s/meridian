@@ -1,0 +1,71 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: checkout-api-envs
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  generators:
+    - list:
+        elements:
+          - env: local
+            namespace: checkout-local
+          - env: staging
+            namespace: checkout-staging
+  template:
+    metadata:
+      name: checkout-api-{{env}}
+      labels:
+        app.kubernetes.io/name: checkout-api
+        app.kubernetes.io/part-of: meridian
+        meridian.io/environment: "{{env}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: meridian
+      source:
+        repoURL: https://github.com/your-org/meridian.git
+        targetRevision: main
+        path: deploy/charts/checkout-api
+        helm:
+          releaseName: checkout-api-{{env}}
+          valueFiles:
+            - environments/{{env}}.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{namespace}}"
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas
+        - group: argoproj.io
+          kind: Rollout
+          jsonPointers:
+            - /spec/replicas
+        # Argo Rollouts rewrites pod-template-hash into these Service selectors.
+        - group: ""
+          kind: Service
+          name: checkout-api-{{env}}
+          jqPathExpressions:
+            - .spec.selector
+        - group: ""
+          kind: Service
+          name: checkout-api-{{env}}-canary
+          jqPathExpressions:
+            - .spec.selector
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 2m

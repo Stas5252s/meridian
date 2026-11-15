@@ -1,0 +1,27 @@
+# Local runtime state and secrets
+.local/
+.secrets/
+kubeconfig*
+*.env
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+
+# Go
+bin/
+dist/
+coverage.out
+coverage.html
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+.render/

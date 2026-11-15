@@ -1,0 +1,29 @@
+# kind maps host ports 8080/https 8443 to these NodePorts (see infra/terraform).
+controller:
+  service:
+    type: NodePort
+    nodePorts:
+      http: 30080
+      https: 30443
+  publishService:
+    enabled: false
+  ingressClassResource:
+    name: nginx
+    enabled: true
+    default: true
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      labels:
+        release: kube-prometheus-stack
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  admissionWebhooks:
+    enabled: true
+    failurePolicy: Fail

@@ -1,0 +1,25 @@
+Meridian checkout-api ({{ .Chart.Version }}) has been deployed to namespace {{ .Release.Namespace }}.
+
+Workload: {{ ternary "Argo Rollout (canary)" "Deployment" .Values.rollout.enabled }}
+Image:    {{ include "checkout-api.image" . }}
+
+{{- if .Values.ingress.enabled }}
+Endpoint: https://{{ .Values.ingress.host }}:8443
+{{- else }}
+Port-forward: kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "checkout-api.fullname" . }} 8080:{{ .Values.service.port }}
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+Health:   curl -skf https://{{ .Values.ingress.host }}:8443/healthz
+Metrics:  curl -sk https://{{ .Values.ingress.host }}:8443/metrics | head
+{{- else }}
+Health:   curl -sf http://localhost:8080/healthz
+Metrics:  curl -s http://localhost:8080/metrics | head
+{{- end }}
+
+{{- if .Values.rollout.enabled }}
+Watch the rollout:
+  kubectl argo rollouts get rollout {{ include "checkout-api.fullname" . }} -n {{ .Release.Namespace }} --watch
+Promote manually if the analysis is disabled:
+  kubectl argo rollouts promote {{ include "checkout-api.fullname" . }} -n {{ .Release.Namespace }}
+{{- end }}

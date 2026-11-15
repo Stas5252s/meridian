@@ -1,0 +1,54 @@
+{{- if .Values.rollout.enabled }}
+{{- if and .Values.rollout.trafficRouting.nginx.enabled (not .Values.ingress.enabled) }}
+{{- fail "rollout.trafficRouting.nginx requires ingress.enabled=true" }}
+{{- end }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "checkout-api.fullname" . }}
+  labels:
+    {{- include "checkout-api.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "checkout-api.selectorLabels" . | nindent 6 }}
+  strategy:
+    canary:
+      {{- if .Values.rollout.trafficRouting.nginx.enabled }}
+      trafficRouting:
+        nginx:
+          stableIngress: {{ include "checkout-api.fullname" . }}
+      {{- end }}
+      stableService: {{ include "checkout-api.fullname" . }}
+      canaryService: {{ include "checkout-api.fullname" . }}-canary
+      maxSurge: 25%
+      maxUnavailable: 0
+      steps:
+        {{- if .Values.rollout.steps }}
+        {{- toYaml .Values.rollout.steps | nindent 8 }}
+        {{- else }}
+        - setWeight: 20
+        - pause:
+            duration: 2m
+        {{- if .Values.rollout.analysis.enabled }}
+        - analysis:
+            templates:
+              - templateName: {{ include "checkout-api.fullname" . }}-success-rate
+            args:
+              - name: namespace
+                value: {{ .Release.Namespace | quote }}
+              - name: canary-ingress
+                value: {{ printf "%s-canary" (include "checkout-api.fullname" .) | quote }}
+        {{- end }}
+        - setWeight: 50
+        - pause:
+            duration: 2m
+        - setWeight: 100
+        {{- end }}
+  template:
+    {{- include "checkout-api.podTemplate" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-monitoring
+  namespace: argocd
+  annotations:
+    # Must precede cert-manager, ingress-nginx and Rollouts, whose charts emit ServiceMonitor CRs.
+    argocd.argoproj.io/sync-wave: "-25"
+spec:
+  project: meridian
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 93.3.0
+      helm:
+        releaseName: kube-prometheus-stack
+        valueFiles:
+          - $values/deploy/platform/kube-prometheus-stack/values.yaml
+    - repoURL: https://github.com/your-org/meridian.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - ApplyOutOfSyncOnly=true

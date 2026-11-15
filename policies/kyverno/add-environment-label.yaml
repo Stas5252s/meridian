@@ -1,0 +1,44 @@
+apiVersion: policies.kyverno.io/v1
+kind: MutatingPolicy
+metadata:
+  name: meridian-add-environment-label
+  annotations:
+    policies.kyverno.io/title: Inherit environment label onto pods
+    policies.kyverno.io/category: Governance
+    policies.kyverno.io/severity: low
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/minversion: 1.20.0
+    policies.kyverno.io/description: >-
+      Pods do not inherit namespace labels. Mutating the environment label
+      onto each pod lets metrics, logs and policy reports be grouped by
+      environment without joining against the namespace object.
+spec:
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  matchConditions:
+    - name: meridian-namespace
+      expression: >-
+        object.metadata.namespace in
+        ['checkout-local', 'checkout-staging', 'checkout-prod']
+  mutations:
+    # JSONPatch works for both Pods and the Deployment admission request that
+    # Kyverno evaluates for pod controllers; a typed ApplyConfiguration patch
+    # fails on the controller's spec.template type.
+    - patchType: JSONPatch
+      jsonPatch:
+        expression: |
+          has(object.metadata.labels) ?
+          [JSONPatch{
+            op: "add",
+            path: "/metadata/labels/" + jsonpatch.escapeKey("meridian.io/environment"),
+            value: object.metadata.namespace
+          }] :
+          [JSONPatch{
+            op: "add",
+            path: "/metadata/labels",
+            value: {"meridian.io/environment": object.metadata.namespace}
+          }]
