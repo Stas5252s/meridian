@@ -16,7 +16,7 @@ spec:
         releaseName: kube-prometheus-stack
         valueFiles:
           - $values/deploy/platform/kube-prometheus-stack/values.yaml
-    - repoURL: https://github.com/your-org/meridian.git
+    - repoURL: https://github.com/Stas5252s/meridian.git
       targetRevision: main
       ref: values
   destination:

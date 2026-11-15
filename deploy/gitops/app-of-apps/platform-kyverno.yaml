@@ -15,7 +15,7 @@ spec:
         releaseName: kyverno
         valueFiles:
           - $values/deploy/platform/kyverno/values.yaml
-    - repoURL: https://github.com/your-org/meridian.git
+    - repoURL: https://github.com/Stas5252s/meridian.git
       targetRevision: main
       ref: values
   destination:

@@ -38,5 +38,5 @@ spec:
         object.spec.containers + object.spec.?initContainers.orValue([])
   validations:
     - expression: >-
-        variables.containers.all(c, c.image.startsWith('ghcr.io/your-org/meridian/'))
-      message: "Production images must come from ghcr.io/your-org/meridian/."
+        variables.containers.all(c, c.image.startsWith('ghcr.io/Stas5252s/meridian/'))
+      message: "Production images must come from ghcr.io/Stas5252s/meridian/."

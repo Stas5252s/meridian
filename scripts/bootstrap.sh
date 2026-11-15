@@ -27,6 +27,11 @@ terraform init -input=false
 echo "==> creating kind cluster"
 terraform apply -auto-approve -input=false -target=kind_cluster.meridian
 
+echo "==> building and loading the local checkout-api image"
+docker build -t checkout-api:dev "${ROOT_DIR}/services/checkout-api"
+CLUSTER_NAME="$(terraform output -raw cluster_name)"
+docker save checkout-api:dev | docker exec -i "${CLUSTER_NAME}-control-plane" ctr -n k8s.io images import -
+
 echo "==> installing ArgoCD and registering the root Application"
 terraform apply -auto-approve -input=false
 

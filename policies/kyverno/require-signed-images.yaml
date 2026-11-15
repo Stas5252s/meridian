@@ -33,7 +33,7 @@ spec:
           'app.kubernetes.io/component' in object.metadata.labels &&
           object.metadata.labels['app.kubernetes.io/component'] == 'redis')
   matchImageReferences:
-    - glob: "ghcr.io/your-org/meridian/checkout-api:*"
+    - glob: "ghcr.io/Stas5252s/meridian/checkout-api:*"
   validationConfigurations:
     mutateDigest: true
     verifyDigest: false
@@ -44,7 +44,7 @@ spec:
         keyless:
           identities:
             - issuer: https://token.actions.githubusercontent.com
-              subject: https://github.com/your-org/meridian/.github/workflows/release.yml@refs/tags/*
+              subject: https://github.com/Stas5252s/meridian/.github/workflows/release.yml@refs/tags/*
         ctlog:
           url: https://rekor.sigstore.dev
   attestations:

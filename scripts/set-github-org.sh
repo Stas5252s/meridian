@@ -35,10 +35,13 @@ mapfile_compat() {
 
 changed=0
 while IFS= read -r -d '' file; do
-  if grep -q 'your-org/meridian\|github.com/your-org\|ghcr.io/your-org' "${file}"; then
-    perl -pi -e "s|github\\.com/your-org/meridian|github.com/${OWNER}/${REPO}|g; s|ghcr\\.io/your-org/meridian|ghcr.io/${OWNER}/${REPO}|g; s|github\\.com/your-org|github.com/${OWNER}|g; s|your-org/meridian|${OWNER}/${REPO}|g" "${file}"
+  tmp="$(mktemp)"
+  cp "${file}" "${tmp}"
+  perl -pi -e "s|github\\.com/[A-Za-z0-9_.-]+/${REPO}|github.com/${OWNER}/${REPO}|g; s|ghcr\\.io/[A-Za-z0-9_.-]+/${REPO}|ghcr.io/${OWNER}/${REPO}|g" "${file}"
+  if ! cmp -s "${tmp}" "${file}"; then
     changed=$((changed + 1))
   fi
+  rm -f "${tmp}"
 done < <(mapfile_compat)
 
 echo "updated ${changed} files for github.com/${OWNER}/${REPO}"

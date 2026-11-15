@@ -19,7 +19,7 @@ variable "node_image" {
 variable "gitops_repo_url" {
   description = "Git repository ArgoCD watches. Replace the placeholder with your fork."
   type        = string
-  default     = "https://github.com/your-org/meridian.git"
+  default     = "https://github.com/Stas5252s/meridian.git"
 }
 
 variable "argo_cd_chart_version" {

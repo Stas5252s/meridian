@@ -13,7 +13,7 @@ metadata:
 spec:
   project: meridian
   source:
-    repoURL: https://github.com/your-org/meridian.git
+    repoURL: https://github.com/Stas5252s/meridian.git
     targetRevision: main
     path: deploy/charts/checkout-api
     helm:

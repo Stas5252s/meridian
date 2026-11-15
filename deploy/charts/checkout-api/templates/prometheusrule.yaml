@@ -83,7 +83,7 @@ spec:
           annotations:
             summary: Checkout API is burning its availability budget at more than 14.4x
             description: The 5m and 1h error ratios exceed the fast-burn threshold of {{ $fast }} for the {{ .Values.prometheusRule.slo.availabilityTarget }} availability SLO. Page the on-call engineer.
-            runbook_url: https://github.com/your-org/meridian/blob/main/docs/runbook.md#availability-fast-burn
+            runbook_url: https://github.com/Stas5252s/meridian/blob/main/docs/runbook.md#availability-fast-burn
         - alert: CheckoutApiAvailabilitySlowBurn
           expr: |
             checkout_api:slo_error_ratio:30m{namespace="{{ $ns }}"} > {{ $slow }}
@@ -98,7 +98,7 @@ spec:
           annotations:
             summary: Checkout API is burning its availability budget at more than 6x
             description: The 30m and 6h error ratios exceed the slow-burn threshold of {{ $slow }}. Investigate before the remaining budget is spent.
-            runbook_url: https://github.com/your-org/meridian/blob/main/docs/runbook.md#availability-slow-burn
+            runbook_url: https://github.com/Stas5252s/meridian/blob/main/docs/runbook.md#availability-slow-burn
         - alert: CheckoutApiAvailabilityTicket
           expr: |
             checkout_api:slo_error_ratio:2h{namespace="{{ $ns }}"} > {{ $ticket }}
@@ -113,7 +113,7 @@ spec:
           annotations:
             summary: Checkout API is trending through its daily error budget
             description: The 2h and 1d error ratios are above the 1x burn threshold of {{ $ticket }}. Open a ticket and review the error budget policy.
-            runbook_url: https://github.com/your-org/meridian/blob/main/docs/runbook.md#availability-ticket
+            runbook_url: https://github.com/Stas5252s/meridian/blob/main/docs/runbook.md#availability-ticket
         - alert: CheckoutApiLatencySloBreach
           expr: checkout_api:slo_latency_p95:5m{namespace="{{ $ns }}"} > {{ .Values.prometheusRule.slo.latencyTargetSeconds }}
           for: 15m
@@ -125,5 +125,5 @@ spec:
           annotations:
             summary: Checkout API p95 latency is above the SLO target
             description: p95 latency has exceeded {{ .Values.prometheusRule.slo.latencyTargetSeconds }}s for 15 minutes. Check saturation, upstream dependencies, and recent rollouts.
-            runbook_url: https://github.com/your-org/meridian/blob/main/docs/runbook.md#latency-breach
+            runbook_url: https://github.com/Stas5252s/meridian/blob/main/docs/runbook.md#latency-breach
 {{- end }}

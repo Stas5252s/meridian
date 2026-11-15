@@ -27,12 +27,12 @@ while ((SECONDS < deadline)); do
   fi
 
   data="$(kubectl -n argocd get applications -o json 2>/dev/null || echo '{"items":[]}')"
-  total="$(jq '.items | length' <<<"${data}")"
-  ready="$(jq '[.items[] | select((.status.sync.status // "") == "Synced" and (.status.health.status // "") == "Healthy")] | length' <<<"${data}")"
-  pending="$(jq -r '.items[] | select((.status.sync.status // "") != "Synced" or (.status.health.status // "") != "Healthy") | "\(.metadata.name): sync=\(.status.sync.status // "Unknown") health=\(.status.health.status // "Unknown")"' <<<"${data}")"
+  total="$(jq '[.items[] | select(.spec.syncPolicy.automated != null)] | length' <<<"${data}")"
+  ready="$(jq '[.items[] | select(.spec.syncPolicy.automated != null) | select((.status.sync.status // "") == "Synced" and (.status.health.status // "") == "Healthy")] | length' <<<"${data}")"
+  pending="$(jq -r '.items[] | select(.spec.syncPolicy.automated != null) | select((.status.sync.status // "") != "Synced" or (.status.health.status // "") != "Healthy") | "\(.metadata.name): sync=\(.status.sync.status // "Unknown") health=\(.status.health.status // "Unknown")"' <<<"${data}")"
 
   if ((total > 0 && ready == total)); then
-    echo "all ${total} ArgoCD Applications are Synced and Healthy"
+    echo "all ${total} auto-synced ArgoCD Applications are Synced and Healthy"
     exit 0
   fi
 

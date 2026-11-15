@@ -15,7 +15,7 @@ spec:
         releaseName: ingress-nginx
         valueFiles:
           - $values/deploy/platform/ingress-nginx/values.yaml
-    - repoURL: https://github.com/your-org/meridian.git
+    - repoURL: https://github.com/Stas5252s/meridian.git
       targetRevision: main
       ref: values
   destination:

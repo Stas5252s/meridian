@@ -1,12 +1,12 @@
 locals {
   app_project_yaml = replace(
     file("${path.module}/../../deploy/gitops/projects/meridian.yaml"),
-    "https://github.com/your-org/meridian.git",
+    "https://github.com/Stas5252s/meridian.git",
     var.gitops_repo_url
   )
   root_app_yaml = replace(
     file("${path.module}/../../deploy/gitops/bootstrap/root-app.yaml"),
-    "https://github.com/your-org/meridian.git",
+    "https://github.com/Stas5252s/meridian.git",
     var.gitops_repo_url
   )
 }

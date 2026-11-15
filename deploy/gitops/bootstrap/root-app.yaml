@@ -10,7 +10,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/meridian.git
+    repoURL: https://github.com/Stas5252s/meridian.git
     targetRevision: main
     path: deploy/gitops/app-of-apps
   destination:

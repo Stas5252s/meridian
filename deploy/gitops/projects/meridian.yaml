@@ -8,7 +8,7 @@ metadata:
 spec:
   description: Meridian platform components and workloads.
   sourceRepos:
-    - https://github.com/your-org/meridian.git
+    - https://github.com/Stas5252s/meridian.git
     - https://kubernetes.github.io/ingress-nginx
     - https://charts.jetstack.io
     - https://kyverno.github.io/kyverno

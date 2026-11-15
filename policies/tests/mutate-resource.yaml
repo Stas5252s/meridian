@@ -8,4 +8,4 @@ metadata:
 spec:
   containers:
     - name: api
-      image: ghcr.io/your-org/meridian/checkout-api:1.4.2
+      image: ghcr.io/Stas5252s/meridian/checkout-api:1.4.2

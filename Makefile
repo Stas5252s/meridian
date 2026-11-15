@@ -11,7 +11,7 @@ K6 ?= k6
 GOLANGCI_LINT ?= golangci-lint
 
 .PHONY: help test test-race lint helm-lint render policies terraform-check ci \
-	up down smoke load port-forward image-bump-staging
+	image up down smoke load port-forward image-bump-staging
 
 help:
 	@echo "Meridian targets:"
@@ -22,6 +22,7 @@ help:
 	@echo "  policies        run Kyverno CEL policy tests"
 	@echo "  terraform-check terraform fmt/validate"
 	@echo "  ci              everything CI runs"
+	@echo "  image           build checkout-api:dev and load it into the kind cluster"
 	@echo "  up              create kind cluster + ArgoCD + GitOps tree"
 	@echo "  down            destroy the local cluster"
 	@echo "  smoke           API smoke test"
@@ -59,6 +60,11 @@ terraform-check:
 	cd infra/terraform && $(TERRAFORM) validate
 
 ci: test lint helm-lint policies terraform-check
+
+image:
+	docker build -t checkout-api:dev services/checkout-api
+	@cluster=$$(cd infra/terraform && $(TERRAFORM) output -raw cluster_name); \
+	docker save checkout-api:dev | docker exec -i "$${cluster}-control-plane" ctr -n k8s.io images import -
 
 up:
 	./scripts/bootstrap.sh
